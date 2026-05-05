@@ -21,9 +21,9 @@ document.addEventListener("DOMContentLoaded", () => {
 
         const spotsLeft = details.max_participants - details.participants.length;
         const participantsHtml = details.participants.length
-          ? `<ul class="participants-list">${details.participants
-              .map((participant) => `<li>${participant}</li>`)
-              .join("")}</ul>`
+          ? `<div class="participants-list">${details.participants
+              .map((participant) => `<div class="participant-item">${participant} <button class="delete-btn" data-email="${participant}" data-activity="${name}">×</button></div>`)
+              .join("")}</div>`
           : `<p class="no-participants">No participants yet.</p>`;
 
         activityCard.innerHTML = `
@@ -38,6 +38,28 @@ document.addEventListener("DOMContentLoaded", () => {
         `;
 
         activitiesList.appendChild(activityCard);
+
+        // Add event listeners for delete buttons
+        activityCard.querySelectorAll('.delete-btn').forEach(btn => {
+          btn.addEventListener('click', async (e) => {
+            const email = e.target.dataset.email;
+            const activity = e.target.dataset.activity;
+            try {
+              const response = await fetch(`/activities/${encodeURIComponent(activity)}/signup?email=${encodeURIComponent(email)}`, {
+                method: 'DELETE'
+              });
+              if (response.ok) {
+                fetchActivities(); // Refresh the activities
+              } else {
+                const result = await response.json();
+                alert(result.detail || 'Failed to unregister');
+              }
+            } catch (error) {
+              console.error('Error unregistering:', error);
+              alert('Failed to unregister participant');
+            }
+          });
+        });
 
         // Add option to select dropdown
         const option = document.createElement("option");
@@ -60,9 +82,13 @@ document.addEventListener("DOMContentLoaded", () => {
 
     try {
       const response = await fetch(
-        `/activities/${encodeURIComponent(activity)}/signup?email=${encodeURIComponent(email)}`,
+        `/activities/${encodeURIComponent(activity)}/signup`,
         {
           method: "POST",
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({email: email})
         }
       );
 
